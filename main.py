@@ -1,34 +1,52 @@
-import pygame
-from pygame.locals import DOUBLEBUF, OPENGL
-from OpenGL.GL import *
+import moderngl as mgl
+import pygame as pg
 
-def main():
-    pygame.init()
+import sys
 
-    pygame.display.gl_set_attribute(pygame.GL_CONTEXT_MAJOR_VERSION, 3)
-    pygame.display.gl_set_attribute(pygame.GL_CONTEXT_MINOR_VERSION, 3)
-    pygame.display.gl_set_attribute(pygame.GL_CONTEXT_PROFILE_MASK, pygame.GL_CONTEXT_PROFILE_CORE)
+from settings import *
 
-    screen_width = 1200
-    screen_height = 720
-    screen = pygame.display.set_mode((screen_width, screen_height), OPENGL | DOUBLEBUF)
+class VoxelEngine:
+    def __init__(self):
+        pg.init()
+        pg.display.gl_set_attribute(pg.GL_CONTEXT_MAJOR_VERSION, 3)
+        pg.display.gl_set_attribute(pg.GL_CONTEXT_MINOR_VERSION, 3)
+        pg.display.gl_set_attribute(pg.GL_CONTEXT_PROFILE_MASK, pg.GL_CONTEXT_PROFILE_CORE)
+        pg.display.gl_set_attribute(pg.GL_DEPTH_SIZE, 24)
 
-    pygame.display.set_caption('SolarCraft')
+        pg.display.set_mode(WIN_RES, flags=pg.OPENGL | pg.DOUBLEBUF)
+        self.ctx = mgl.create_context()
 
-    glClearColor(0.6, 0.78, 0.76, 1.0)
+        self.ctx.enable(flags=mgl.DEPTH_TEST | mgl.CULL_FACE | mgl.BLEND)
+        self.ctx.gc_mode = 'auto'
 
-    running = True
-    while running:
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                running = False
-            if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
-                running = False
+        self.clock = pg.time.Clock()
+        self.delta_time = 0
+        self.time = 0
 
-        glClear(GL_COLOR_BUFFER_BIT)
-        pygame.display.flip()
+        self.is_running = True
 
-    pygame.quit()
+    def update(self):
+        self.delta_time = self.clock.tick()
+        self.time = pg.time.get_ticks() * 0.001
+        pg.display.set_caption(f'{self.clock.get_fps() :.0f}')
+
+    def render(self):
+        self.ctx.clear(color=BG_COLORS)
+        pg.display.flip()
+
+    def handle_events(self):
+        for event in pg.event.get():
+            if event.type == pg.QUIT or (event.type == pg.KEYDOWN and event.key == pg.K_ESCAPE):
+                self.is_running = False
+
+    def run(self):
+        while self.is_running:
+            self.handle_events()
+            self.update()
+            self.render()
+        pg.quit()
+        sys.exit()
 
 if __name__ == '__main__':
-    main()
+    app = VoxelEngine()
+    app.run()
