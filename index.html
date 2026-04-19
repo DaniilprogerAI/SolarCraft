@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Solarpunk Voxel Sandbox</title>
+    <link rel="icon" href="data:," />
+    <style>
+      :root {
+        --accent: #f8c36a;
+        --accent-2: #6ad3a6;
+        --panel: rgba(22, 34, 30, 0.72);
+        --panel-edge: rgba(250, 230, 190, 0.22);
+      }
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        background: #0c1a18;
+        color: #f6eedc;
+        font-family: 'Segoe UI', Roboto, system-ui, sans-serif;
+        user-select: none;
+      }
+      canvas {
+        display: block;
+      }
+      #crosshair {
+        position: fixed;
+        left: 50%;
+        top: 50%;
+        width: 18px;
+        height: 18px;
+        margin: -9px 0 0 -9px;
+        pointer-events: none;
+        mix-blend-mode: difference;
+        color: #fff;
+      }
+      #crosshair::before,
+      #crosshair::after {
+        content: '';
+        position: absolute;
+        background: #fff;
+      }
+      #crosshair::before {
+        left: 8px;
+        top: 0;
+        width: 2px;
+        height: 18px;
+      }
+      #crosshair::after {
+        top: 8px;
+        left: 0;
+        height: 2px;
+        width: 18px;
+      }
+      #hotbar {
+        position: fixed;
+        left: 50%;
+        bottom: 20px;
+        transform: translateX(-50%);
+        display: flex;
+        gap: 6px;
+        padding: 6px;
+        background: var(--panel);
+        border: 1px solid var(--panel-edge);
+        border-radius: 10px;
+        backdrop-filter: blur(6px);
+        pointer-events: none;
+      }
+      .slot {
+        width: 48px;
+        height: 48px;
+        border-radius: 8px;
+        background: rgba(10, 20, 18, 0.55);
+        border: 1px solid rgba(250, 230, 190, 0.12);
+        position: relative;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 11px;
+        color: #e9dfc4;
+      }
+      .slot .swatch {
+        width: 28px;
+        height: 28px;
+        border-radius: 6px;
+        box-shadow: inset 0 -6px 0 rgba(0, 0, 0, 0.25),
+          inset 0 6px 0 rgba(255, 255, 255, 0.08);
+      }
+      .slot .label {
+        position: absolute;
+        bottom: 2px;
+        left: 0;
+        right: 0;
+        text-align: center;
+        font-size: 9.5px;
+        letter-spacing: 0.04em;
+        opacity: 0.85;
+      }
+      .slot .num {
+        position: absolute;
+        top: 2px;
+        left: 4px;
+        font-size: 10px;
+        color: var(--accent);
+        font-weight: 700;
+      }
+      .slot.active {
+        outline: 2px solid var(--accent);
+        box-shadow: 0 0 14px rgba(248, 195, 106, 0.5);
+      }
+      #hud {
+        position: fixed;
+        top: 12px;
+        left: 12px;
+        padding: 10px 12px;
+        background: var(--panel);
+        border: 1px solid var(--panel-edge);
+        border-radius: 10px;
+        font-size: 12px;
+        line-height: 1.55;
+        backdrop-filter: blur(6px);
+        max-width: 320px;
+      }
+      #hud h1 {
+        font-size: 13px;
+        margin: 0 0 6px 0;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--accent);
+      }
+      #hud kbd {
+        font-family: inherit;
+        font-size: 11px;
+        padding: 1px 5px;
+        border-radius: 4px;
+        background: rgba(250, 230, 190, 0.14);
+        border: 1px solid rgba(250, 230, 190, 0.18);
+      }
+      #fps {
+        position: fixed;
+        top: 12px;
+        right: 12px;
+        padding: 6px 10px;
+        background: var(--panel);
+        border: 1px solid var(--panel-edge);
+        border-radius: 8px;
+        font-size: 11px;
+        font-variant-numeric: tabular-nums;
+        color: var(--accent-2);
+      }
+      #start {
+        position: fixed;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: radial-gradient(
+            ellipse at 50% 20%,
+            rgba(248, 195, 106, 0.15),
+            transparent 60%
+          ),
+          linear-gradient(180deg, #0d1f1c 0%, #0a1513 100%);
+        z-index: 10;
+        transition: opacity 0.4s ease;
+      }
+      #start .card {
+        max-width: 540px;
+        padding: 28px 32px;
+        background: var(--panel);
+        border: 1px solid var(--panel-edge);
+        border-radius: 14px;
+        text-align: left;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+      }
+      #start h1 {
+        margin: 0 0 4px 0;
+        font-size: 26px;
+        color: var(--accent);
+        letter-spacing: 0.02em;
+      }
+      #start p {
+        margin: 6px 0;
+        font-size: 13px;
+        line-height: 1.6;
+        color: #e9dfc4;
+      }
+      #start .keys {
+        display: grid;
+        grid-template-columns: auto 1fr;
+        gap: 4px 14px;
+        margin: 12px 0 18px 0;
+        font-size: 12px;
+      }
+      #start .keys kbd {
+        font-family: inherit;
+        font-size: 11px;
+        padding: 1px 6px;
+        border-radius: 4px;
+        background: rgba(250, 230, 190, 0.14);
+        border: 1px solid rgba(250, 230, 190, 0.18);
+        color: #fff5dc;
+        justify-self: start;
+      }
+      #start button {
+        font: inherit;
+        padding: 10px 18px;
+        border-radius: 10px;
+        border: 1px solid rgba(248, 195, 106, 0.6);
+        background: linear-gradient(180deg, #f8c36a, #e0a14a);
+        color: #1a1208;
+        font-weight: 700;
+        cursor: pointer;
+        letter-spacing: 0.04em;
+      }
+      #start button:hover {
+        filter: brightness(1.05);
+      }
+      #start.hidden {
+        opacity: 0;
+        pointer-events: none;
+      }
+      #loading {
+        font-size: 11px;
+        color: var(--accent-2);
+        margin-top: 10px;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="start">
+      <div class="card">
+        <h1>Solarpunk Voxel Sandbox</h1>
+        <p>
+          A small voxel world rendered in Three.js. Build terraces of terracotta,
+          string up lanterns through leafy canopies, and line your rooftops with
+          solar panels.
+        </p>
+        <div class="keys">
+          <kbd>W A S D</kbd><span>Move</span>
+          <kbd>Space</kbd><span>Jump / Fly up</span>
+          <kbd>Shift</kbd><span>Sneak / Fly down</span>
+          <kbd>F</kbd><span>Toggle fly mode</span>
+          <kbd>1–9</kbd><span>Select block</span>
+          <kbd>Scroll</kbd><span>Cycle hotbar</span>
+          <kbd>Left click</kbd><span>Break block</span>
+          <kbd>Right click</kbd><span>Place block</span>
+          <kbd>Esc</kbd><span>Release mouse</span>
+        </div>
+        <button id="startBtn">Enter world</button>
+        <div id="loading">Generating terrain…</div>
+      </div>
+    </div>
+    <div id="hud" style="display: none">
+      <h1>Solarpunk Voxel</h1>
+      <div>
+        <kbd>WASD</kbd> move · <kbd>Space</kbd> jump · <kbd>F</kbd> fly ·
+        <kbd>1-9</kbd> blocks · <kbd>LMB</kbd> break · <kbd>RMB</kbd> place
+      </div>
+    </div>
+    <div id="fps" style="display: none">—</div>
+    <div id="crosshair" style="display: none"></div>
+    <div id="hotbar" style="display: none"></div>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
